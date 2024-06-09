@@ -5,3 +5,4 @@ streamlit
 statsmodels
 requests
 pillow
+kaleido
