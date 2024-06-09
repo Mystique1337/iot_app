@@ -7,7 +7,7 @@ from statsmodels.tsa.statespace.sarimax import SARIMAX
 import requests
 from PIL import Image
 from io import BytesIO
-import kaleido
+import base64 
 
 # Load the dataset
 file_path = 'dataset_iot_emmission - dataset_iot_emmission.csv'
@@ -68,6 +68,8 @@ forecast = sarima_fit.get_forecast(steps=30)
 forecast_df = forecast.conf_int()
 forecast_df['Forecast'] = sarima_fit.predict(start=forecast_df.index[0], end=forecast_df.index[-1])
 
+
+
 # Plot forecast
 st.subheader('CO2 Emission Forecast')
 fig = go.Figure()
@@ -77,13 +79,15 @@ fig.update_layout(title=f'CO2 Emission Forecast - {selected_location}', xaxis_ti
 st.plotly_chart(fig)
 
 # Button to download plot as PNG
-png_data = fig.to_image(format="png")
-st.download_button(
-    label="Download plot as PNG",
-    data=png_data,
-    file_name="forecast_plot.png",
-    mime="image/png"
-)
+# Encode Plotly figure to base64 image
+buffer = BytesIO()
+fig.write_image(buffer, format="png")
+img_str = base64.b64encode(buffer.getvalue()).decode()
+
+# Create download link
+href = f'<a href="data:image/png;base64,{img_str}" download="forecast_plot.png">Download plot as PNG</a>'
+st.markdown(href, unsafe_allow_html=True)
+
 
 # Display forecast values
 st.subheader('Forecast Values')
