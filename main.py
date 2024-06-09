@@ -10,7 +10,7 @@ from io import BytesIO
 import kaleido
 
 # Load the dataset
-file_path = 'dataset_iot_emmission - dataset_iot_emmission (1).csv'
+file_path = 'dataset_iot_emmission - dataset_iot_emmission.csv'
 data = pd.read_csv(file_path)
 
 # Convert date_surveyed to datetime
