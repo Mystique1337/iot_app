@@ -7,9 +7,10 @@ from statsmodels.tsa.statespace.sarimax import SARIMAX
 import requests
 from PIL import Image
 from io import BytesIO
+import kaleido
 
 # Load the dataset
-file_path = 'dataset_iot_emmission - dataset_iot_emmission.csv'
+file_path = 'dataset_iot_emmission - dataset_iot_emmission (1).csv'
 data = pd.read_csv(file_path)
 
 # Convert date_surveyed to datetime
@@ -76,9 +77,10 @@ fig.update_layout(title=f'CO2 Emission Forecast - {selected_location}', xaxis_ti
 st.plotly_chart(fig)
 
 # Button to download plot as PNG
+png_data = fig.to_image(format="png")
 st.download_button(
     label="Download plot as PNG",
-    data=fig.to_image(format="png"),
+    data=png_data,
     file_name="forecast_plot.png",
     mime="image/png"
 )
@@ -102,7 +104,7 @@ def ai_insights(location_data):
     max_value = location_data['daily_co2_emmission'].max()
     mean_value = location_data['daily_co2_emmission'].mean()
     std_value = location_data['daily_co2_emmission'].std()
-
+    
     insights = f"""
     The maximum CO2 emission recorded is {max_value:.6f}, which indicates the peak level of emissions.
     On average, the CO2 emission is {mean_value:.6f}, showing the general trend of emission levels.
@@ -112,7 +114,7 @@ def ai_insights(location_data):
         insights += " The emission levels have exceeded the safety threshold at times, which is concerning."
     else:
         insights += " The emission levels are within the safe range."
-
+    
     return insights
 
 st.write(ai_insights(location_data))
