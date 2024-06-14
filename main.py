@@ -59,7 +59,7 @@ st.write(location_data.describe())
 
 # Plot the time series
 st.subheader(f'Daily CO2 Emission Over Time ({granularity})')
-fig = px.line(location_data, y='daily_co2_emmission', title=f'Daily CO2 Emission Over Time - {selected_location}')
+fig = px.line(location_data, y='daily_co2_emmission_ppm', title=f'Daily CO2 Emission Over Time - {selected_location}')
 st.plotly_chart(fig)
 
 # SARIMA model for better forecasting
