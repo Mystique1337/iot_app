@@ -7,14 +7,16 @@ from statsmodels.tsa.statespace.sarimax import SARIMAX
 import requests
 from PIL import Image
 from io import BytesIO
-import base64 
+import base64
 
 # Load the dataset
 file_path = 'stationary_df.csv'
 data = pd.read_csv(file_path)
 data.drop('Unnamed: 0', axis=1, inplace=True)
-# Convert date_surveyed to datetime
+
+# Convert date_surveyed to datetime and set as index
 data['date_surveyed'] = pd.to_datetime(data['date_surveyed'], format='%Y-%m-%d')
+data.set_index('date_surveyed', inplace=True)
 data.rename(columns={'daily_co2_emmission_ppm_stationary': 'daily_co2_emmission_ppm'}, inplace=True)
 
 # Title for Streamlit app
@@ -30,35 +32,18 @@ def resample_data(df, granularity):
         return df.resample('W').mean()
     elif granularity == "Monthly":
         return df.resample('M').mean()
-    return df
+    return df.resample('D').mean()
 
-# Function to get image for location
-def get_image_for_location(location):
-    search_url = f"https://en.wikipedia.org/w/api.php?action=query&prop=pageimages&format=json&pithumbsize=400&titles={location.replace(' ', '_')}"
-    response = requests.get(search_url).json()
-    pages = response['query']['pages']
-    page = next(iter(pages.values()))
-    image_url = page.get('thumbnail', {}).get('source', None)
-    if image_url:
-        return Image.open(BytesIO(requests.get(image_url).content))
-    return None
-
-# Filter data for the selected location
-location_data = data[data['Area_Surveyed'] == selected_location].copy()
-location_data.set_index('date_surveyed', inplace=True)
+# Filter data for the selected location and resample
+location_data = data[data['Area_Surveyed'] == selected_location]
 location_data = resample_data(location_data, granularity)
-
-# Display image for location
-image = get_image_for_location(selected_location)
-if image:
-    st.image(image, caption=f'{selected_location}')
 
 # Descriptive statistics
 st.header(f"Descriptive Statistics for {selected_location}")
 st.write(location_data.describe())
 
 # Plot the time series
-st.subheader(f'Daily CO2 Emission Over Time ({granularity})')
+st.subheader(f'CO2 Emission Over Time ({granularity})')
 fig = px.line(location_data, y='daily_co2_emmission_ppm', title=f'Daily CO2 Emission Over Time - {selected_location}')
 st.plotly_chart(fig)
 
@@ -69,8 +54,6 @@ forecast = sarima_fit.get_forecast(steps=30)
 forecast_df = forecast.conf_int()
 forecast_df['Forecast'] = sarima_fit.predict(start=forecast_df.index[0], end=forecast_df.index[-1])
 
-
-
 # Plot forecast
 st.subheader('CO2 Emission Forecast')
 fig = go.Figure()
@@ -78,21 +61,6 @@ fig.add_trace(go.Scatter(x=location_data.index, y=location_data['daily_co2_emmis
 fig.add_trace(go.Scatter(x=forecast_df.index, y=forecast_df['Forecast'], mode='lines', name='Forecast', line=dict(color='red')))
 fig.update_layout(title=f'CO2 Emission Forecast - {selected_location}', xaxis_title='Date', yaxis_title='CO2 Emission')
 st.plotly_chart(fig)
-
-# Button to download plot as PNG
-# Encode Plotly figure to base64 image
-buffer = BytesIO()
-fig.write_image(buffer, format="png")
-img_str = base64.b64encode(buffer.getvalue()).decode()
-
-# Create download link
-href = f'<a href="data:image/png;base64,{img_str}" download="forecast_plot.png">Download plot as PNG</a>'
-st.markdown(href, unsafe_allow_html=True)
-
-
-# Display forecast values
-st.subheader('Forecast Values')
-st.write(forecast_df[['Forecast']])
 
 # Safety evaluation
 safety_threshold = 0.0005  # Example threshold
