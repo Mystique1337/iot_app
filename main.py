@@ -10,11 +10,12 @@ from io import BytesIO
 import base64 
 
 # Load the dataset
-file_path = 'dataset_iot_emmission - dataset_iot_emmission.csv'
+file_path = 'stationary_df.csv'
 data = pd.read_csv(file_path)
-
+data.drop('Unnamed: 0', axis=1, inplace=True)
 # Convert date_surveyed to datetime
 data['date_surveyed'] = pd.to_datetime(data['date_surveyed'], format='%d-%m-%Y')
+
 
 # Title for Streamlit app
 st.title("CO2 Emission Dashboard per Location")
