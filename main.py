@@ -17,7 +17,9 @@ data.drop('Unnamed: 0', axis=1, inplace=True)
 # Convert date_surveyed to datetime and set as index
 data['date_surveyed'] = pd.to_datetime(data['date_surveyed'], format='%Y-%m-%d')
 data.set_index('date_surveyed', inplace=True)
-#data.rename(columns={'daily_co2_emmission_ppm_stationary': 'daily_co2_emmission_ppm'}, inplace=True)
+
+# Rename columns if necessary
+data.rename(columns={'daily_co2_emmission_ppm_stationary': 'daily_co2_emmission_ppm'}, inplace=True)
 
 # Title for Streamlit app
 st.title("CO2 Emission Dashboard per Location")
@@ -32,6 +34,7 @@ def resample_data(df, granularity):
         return df.resample('W').mean()
     elif granularity == "Monthly":
         return df.resample('M').mean()
+    # Assuming the daily data needs no aggregation but just confirmation of the structure
     return df.resample('D').mean()
 
 # Filter data for the selected location and resample
@@ -85,6 +88,7 @@ def ai_insights(location_data):
     """
     if max_value > safety_threshold:
         insights += " The emission levels have exceeded the safety threshold at times, which is concerning."
+
     else:
         insights += " The emission levels are within the safe range."
     
