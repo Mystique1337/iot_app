@@ -17,7 +17,7 @@ data.drop('Unnamed: 0', axis=1, inplace=True)
 # Convert date_surveyed to datetime and set as index
 data['date_surveyed'] = pd.to_datetime(data['date_surveyed'], format='%Y-%m-%d')
 data.set_index('date_surveyed', inplace=True)
-data.rename(columns={'daily_co2_emmission_ppm_stationary': 'daily_co2_emmission_ppm'}, inplace=True)
+#data.rename(columns={'daily_co2_emmission_ppm_stationary': 'daily_co2_emmission_ppm'}, inplace=True)
 
 # Title for Streamlit app
 st.title("CO2 Emission Dashboard per Location")
