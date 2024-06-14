@@ -63,7 +63,7 @@ fig = px.line(location_data, y='daily_co2_emmission', title=f'Daily CO2 Emission
 st.plotly_chart(fig)
 
 # SARIMA model for better forecasting
-sarima_model = SARIMAX(location_data['daily_co2_emmission'], order=(1, 1, 1), seasonal_order=(1, 1, 1, 12))
+sarima_model = SARIMAX(location_data['daily_co2_emmission_ppm'], order=(1, 1, 1), seasonal_order=(1, 1, 1, 12))
 sarima_fit = sarima_model.fit(disp=False)
 forecast = sarima_fit.get_forecast(steps=30)
 forecast_df = forecast.conf_int()
@@ -74,7 +74,7 @@ forecast_df['Forecast'] = sarima_fit.predict(start=forecast_df.index[0], end=for
 # Plot forecast
 st.subheader('CO2 Emission Forecast')
 fig = go.Figure()
-fig.add_trace(go.Scatter(x=location_data.index, y=location_data['daily_co2_emmission'], mode='lines', name='Observed'))
+fig.add_trace(go.Scatter(x=location_data.index, y=location_data['daily_co2_emmission_ppm'], mode='lines', name='Observed'))
 fig.add_trace(go.Scatter(x=forecast_df.index, y=forecast_df['Forecast'], mode='lines', name='Forecast', line=dict(color='red')))
 fig.update_layout(title=f'CO2 Emission Forecast - {selected_location}', xaxis_title='Date', yaxis_title='CO2 Emission')
 st.plotly_chart(fig)
@@ -96,7 +96,7 @@ st.write(forecast_df[['Forecast']])
 
 # Safety evaluation
 safety_threshold = 0.0005  # Example threshold
-max_emission = location_data['daily_co2_emmission'].max()
+max_emission = location_data['daily_co2_emmission_ppm'].max()
 safety_status = "Safe" if max_emission < safety_threshold else "Unsafe"
 
 st.subheader('Safety Evaluation')
@@ -106,9 +106,9 @@ st.write(f"The highest recorded CO2 emission for {selected_location} is {max_emi
 st.header("Conversational AI Insights")
 
 def ai_insights(location_data):
-    max_value = location_data['daily_co2_emmission'].max()
-    mean_value = location_data['daily_co2_emmission'].mean()
-    std_value = location_data['daily_co2_emmission'].std()
+    max_value = location_data['daily_co2_emmission_ppm'].max()
+    mean_value = location_data['daily_co2_emmission_ppm'].mean()
+    std_value = location_data['daily_co2_emmission_ppm'].std()
     
     insights = f"""
     The maximum CO2 emission recorded is {max_value:.6f}, which indicates the peak level of emissions.
