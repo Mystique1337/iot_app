@@ -8,7 +8,7 @@ from PIL import Image
 import datetime
 
 # Load the dataset
-file_path = 'stationary_df(2).csv'
+file_path = 'stationary_df (2).csv'
 data = pd.read_csv(file_path)
 data.drop('Unnamed: 0', axis=1, inplace=True)
 
