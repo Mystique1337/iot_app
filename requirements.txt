@@ -3,6 +3,4 @@ numpy
 plotly
 streamlit
 statsmodels
-requests
-pillow
-kaleido
+Pillow
