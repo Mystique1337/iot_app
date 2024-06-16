@@ -32,7 +32,8 @@ selected_location = st.sidebar.selectbox("Select Location", data['Area_Surveyed'
 
 # Function to resample data based on selected granularity
 def resample_data(df, granularity):
-    return df.resample(granularity[0].upper()).mean()
+    rule = granularity[0].upper()  # Get the first letter (D, W, or M)
+    return df.resample(rule).mean() 
 
 # Filter and resample data for the selected location
 location_data = data[data['Area_Surveyed'] == selected_location]
