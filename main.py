@@ -41,10 +41,21 @@ location_data = resample_data(location_data, granularity)
 
 # Dynamic date display and latest CO2 emission value
 filtered_data = data[data['Area_Surveyed'].isin(selected_locations)]
+def resample_data(df, granularity):
+    rule = granularity[0].upper()  # Get the first letter (D, W, or M)
+    return df.resample(rule).mean()
+
+# Filter and resample data (strictly enforce numeric types)
+filtered_data = data[data['Area_Surveyed'].isin(selected_locations)]
 
 if not filtered_data.empty:
-    numeric_columns = filtered_data.select_dtypes(include=np.number)  
+    # Select only numeric columns and convert the target column explicitly
+    numeric_columns = filtered_data.select_dtypes(include=np.number).copy()
+    numeric_columns['daily_co2_emmission_ppm'] = pd.to_numeric(numeric_columns['daily_co2_emmission_ppm'], errors='coerce')
+
     resampled_data = numeric_columns.groupby('Area_Surveyed').apply(lambda x: resample_data(x, granularity))
+
+  
 
     st.sidebar.markdown(f"**Latest reading from {latest_date.strftime('%Y-%m-%d')}:**")
     st.sidebar.markdown(f"**{current_co2:.2f} ppm CO2**", unsafe_allow_html=True)
