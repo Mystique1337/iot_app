@@ -3,100 +3,101 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-from statsmodels.tsa.statespace.sarimax import SARIMAX
-import requests
+from statsmodels.tsa.exponential_smoothing.ets import ETSModel
 from PIL import Image
-from io import BytesIO
-import base64
+import datetime
 
 # Load the dataset
-file_path = 'stationary_df.csv'  # Assuming the file is in the same directory
+file_path = 'stationary_df.csv'
 data = pd.read_csv(file_path)
 data.drop('Unnamed: 0', axis=1, inplace=True)
 
-# Convert date_surveyed to datetime and set as index
+# Convert 'date_surveyed' to datetime and set as index
 data['date_surveyed'] = pd.to_datetime(data['date_surveyed'], format='%Y-%m-%d')
 data.set_index('date_surveyed', inplace=True)
 
-# Rename columns if necessary (assuming the column is consistently named)
+# Rename column for clarity
 data.rename(columns={'daily_co2_emmission_ppm_stationary': 'daily_co2_emmission_ppm'}, inplace=True)
 
-# Title for Streamlit app
-st.title("CO2 Emission Dashboard per Location")
+# Set up the Streamlit app layout
+st.set_page_config(layout="wide")
 
-# Sidebar for user input
-granularity = st.sidebar.selectbox("Select Time Granularity", ["Daily", "Weekly", "Monthly"])
+# Display logo and title
+st.sidebar.image('images/uniport_logo.png', width=100)
+st.sidebar.title("CO2 Emission Dashboard")
+
+# User input via sidebar for granularity and location
+granularity = st.sidebar.radio("Time Granularity", ["Daily", "Weekly", "Monthly"])
 selected_location = st.sidebar.selectbox("Select Location", data['Area_Surveyed'].unique())
 
-# Function to resample data based on granularity
+# Function to resample data based on selected granularity
 def resample_data(df, granularity):
-    if granularity == "Weekly":
-        return df.resample('W').mean()
-    elif granularity == "Monthly":
-        return df.resample('M').mean()
-    # For daily, no resampling is needed, just ensure the DataFrame is consistent
-    return df.resample('D').asfreq() 
+    return df.resample(granularity[0].upper()).mean()
 
-# Filter data for the selected location and resample
+# Filter and resample data for the selected location
 location_data = data[data['Area_Surveyed'] == selected_location]
 location_data = resample_data(location_data, granularity)
 
-# Descriptive statistics
-st.header(f"Descriptive Statistics for {selected_location}")
-st.write(location_data.describe())
+# Dynamic date display and latest CO2 emission value
+if not location_data.empty:
+    latest_date = location_data.index.max()
+    current_co2 = location_data.iloc[-1]['daily_co2_emmission_ppm']
+    st.sidebar.markdown(f"**Latest reading from {latest_date.strftime('%Y-%m-%d')}:**")
+    st.sidebar.markdown(f"**{current_co2:.2f} ppm CO2**", unsafe_allow_html=True)
 
-# Plot the time series
-st.subheader(f'CO2 Emission Over Time ({granularity})')
-fig = px.line(location_data, y='daily_co2_emmission_ppm', title=f'Daily CO2 Emission Over Time - {selected_location}')
-st.plotly_chart(fig)
+# Main dashboard layout with location and statistics
+col1, col2 = st.columns([2, 1])
+with col1:
+    st.header(f"CO2 Emission Trends for {selected_location}")
+    fig = px.line(location_data, y='daily_co2_emmission_ppm', title='Trend Over Time', labels={'value': 'CO2 Emission (ppm)'})
+    st.plotly_chart(fig, use_container_width=True)
 
-# SARIMA model for forecasting
-# Adjust SARIMA order and seasonal order if necessary based on your data
-sarima_model = SARIMAX(location_data['daily_co2_emmission_ppm'], order=(1, 1, 1), seasonal_order=(1, 1, 1, 12))
-sarima_fit = sarima_model.fit(disp=False)  # Suppress convergence warnings
+    # Display location image
+    image_path = f'images/{selected_location}.png'  # assuming the file name is the exact location name
+    try:
+        location_image = Image.open(image_path)
+        st.image(location_image, caption=f'Image of {selected_location}')
+    except FileNotFoundError:
+        st.error("Image file not found.")
 
-# Forecast for the next 30 periods
-forecast = sarima_fit.get_forecast(steps=30)
-forecast_df = forecast.conf_int()
-forecast_df['Forecast'] = sarima_fit.predict(start=forecast_df.index[0], end=forecast_df.index[-1])
+with col2:
+    st.subheader("Descriptive Statistics")
+    st.write(location_data.describe())
+    if len(location_data) > 12:  # Conditional display of forecasting
+        ets_model = ETSModel(location_data['daily_co2_emmission_ppm'], error='add', trend='add', seasonal='add', seasonal_periods=12)
+        ets_fit = ets_model.fit()
+        forecast_values = ets_fit.forecast(steps=30)
+        forecast_df = pd.DataFrame({'Forecast': forecast_values, 'Date': forecast_values.index})
+        forecast_df.set_index('Date', inplace=True)
 
-# Plot forecast
-st.subheader('CO2 Emission Forecast')
-fig = go.Figure()
-fig.add_trace(go.Scatter(x=location_data.index, y=location_data['daily_co2_emmission_ppm'], mode='lines', name='Observed'))
-fig.add_trace(go.Scatter(x=forecast_df.index, y=forecast_df['Forecast'], mode='lines', name='Forecast', line=dict(color='red')))
-fig.update_layout(title=f'CO2 Emission Forecast - {selected_location}', xaxis_title='Date', yaxis_title='CO2 Emission')
-st.plotly_chart(fig)
+        st.subheader('Forecasted CO2 Emission')
+        forecast_fig = go.Figure()
+        forecast_fig.add_trace(go.Scatter(x=location_data.index, y=location_data['daily_co2_emmission_ppm'], mode='lines', name='Observed'))
+        forecast_fig.add_trace(go.Scatter(x=forecast_df.index, y=forecast_df['Forecast'], mode='lines', name='Forecast', line=dict(color='red')))
+        forecast_fig.update_layout(title='Forecast', xaxis_title='Date', yaxis_title='CO2 Emission (ppm)')
+        st.plotly_chart(forecast_fig, use_container_width=True)
 
+        # AI Insights Placeholder function
+        def ai_insights(data):
+            insights = "Analysis shows trends, peaks, and predictions aiding in proactive measures."
+            return insights
 
-# Safety evaluation (adjust the threshold based on your data and safety guidelines)
-safety_threshold = 0.0005  # Example threshold - should be a ppm value
-max_emission = location_data['daily_co2_emmission_ppm'].max()
-safety_status = "Safe" if max_emission < safety_threshold else "Unsafe"
+        st.subheader("AI-Generated Insights")
+        st.write(ai_insights(location_data))
 
-st.subheader('Safety Evaluation')
-st.write(f"The highest recorded CO2 emission for {selected_location} is {max_emission:.6f} ppm. The location is considered {safety_status} based on a threshold of {safety_threshold:.6f} ppm.")
+        # Download data button
+        st.download_button(label='Download Forecast Data', data=forecast_df.to_csv(), file_name='forecasted_data.csv', mime='text/csv')
 
-
-
-# Conversational AI section (you can customize this further)
-st.header("Conversational AI Insights")
-
-def ai_insights(location_data):
-    max_value = location_data['daily_co2_emmission_ppm'].max()
-    mean_value = location_data['daily_co2_emmission_ppm'].mean()
-    std_value = location_data['daily_co2_emmission_ppm'].std()
-    
-    insights = f"""
-    The maximum CO2 emission recorded is {max_value:.6f} ppm, which indicates the peak level of emissions.
-    On average, the CO2 emission is {mean_value:.6f} ppm, showing the general trend of emission levels.
-    The standard deviation of {std_value:.6f} ppm suggests the variability in the CO2 emission data.
-    """
-    if max_value > safety_threshold:
-        insights += " The emission levels have exceeded the safety threshold at times, which is concerning."
-    else:
-        insights += " The emission levels are within the safe range."
-    
-    return insights
-
-st.write(ai_insights(location_data))
+# Additional styling for better visual appeal
+st.markdown("""
+    <style>
+    .css-1aumxhk {
+        background-color: #f0f2f6;
+        border-color: #f0f2f6;
+    }
+    .css-1d391kg {
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
