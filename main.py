@@ -40,9 +40,12 @@ location_data = data[data['Area_Surveyed'] == selected_location]
 location_data = resample_data(location_data, granularity)
 
 # Dynamic date display and latest CO2 emission value
-if not location_data.empty:
-    latest_date = location_data.index.max()
-    current_co2 = location_data.iloc[-1]['daily_co2_emmission_ppm']
+filtered_data = data[data['Area_Surveyed'].isin(selected_locations)]
+
+if not filtered_data.empty:
+    numeric_columns = filtered_data.select_dtypes(include=np.number)  
+    resampled_data = numeric_columns.groupby('Area_Surveyed').apply(lambda x: resample_data(x, granularity))
+
     st.sidebar.markdown(f"**Latest reading from {latest_date.strftime('%Y-%m-%d')}:**")
     st.sidebar.markdown(f"**{current_co2:.2f} ppm CO2**", unsafe_allow_html=True)
 
